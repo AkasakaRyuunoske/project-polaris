@@ -1,0 +1,34 @@
+Idea: The hardest and most overengineered way to create a Full Stack App
+
+Why?: Better teorical practical understanting of interconnecting different tecnologies.
+
+Dedicated: uzP, Utsu-P, Okame-P, Youyoupe, Wowaka, Sematary, Imperial Circus Dead Decadence, Band Maid, Sayuri Mikazuki, Foreground Eclipse, Sewerslvt.
+
+Title: Project Polaris (thx uzP)
+
+--| Tecnologies|: Docker, K8nates, AWS(?2)
+
+--| (?6)Security: JWT, OAuth - Basic Auth - Session Auth
+
+--| Front-End:
+Bootstrap, HTML, SCSS/LESS/SAAS, Webpack, Material UI, Tailwind, JS, Angular, nodejs, JQuery, Swagger(?4), WebSocket
+
+--| Front-end-Testing: Jest
+
+--| Back-End(Java): 
+Spring, Spring Boot, Spring Security(JWT), Spring Data, Spring JDBC, Spring Mail, Spring Session, Spring Cloud, Spring Testing, Spring Scheduling, Spring Microservices, Spring Web, Spring Socket, JJWT, Jackson, Gson, Poha, Itexpdf, apache.CSVWritter, Java 15(?1), smth for creating graphs(?5), WebSocket, Swing, AWT, JDBC,
+
+--| Back-end-utilities: Lombok, Log4j2
+
+--| Back-end(Python):
+Flask, SQLAlchemy, Marshmallow(?8)
+
+--| Build-Back-end: Gradle
+
+--| DB: Postgres, MySQL, SQLLite, Cassandra(?7)
+
+--| Messeging: MQTT + Kafka
+
+--| Android: Java
+
+--| (?3)AI: Lora, Alpaca

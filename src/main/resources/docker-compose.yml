@@ -1,0 +1,7 @@
+version: '3.1'
+services:
+  Chloe:
+    image: cassandra
+    container_name: Chloe
+    ports:
+      - "9042:9042"

@@ -44,6 +44,6 @@ public class IndexController {
                 "\n" +
                 "\n" +
                 "Quite the song.");
-        return "index.html";
+        return "rmz2.html";
     }
 }

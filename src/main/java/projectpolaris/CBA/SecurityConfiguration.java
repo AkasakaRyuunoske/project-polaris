@@ -13,6 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.cors.CorsConfiguration;
+
 import projectpolaris.CBA.JWT.JWTFilter;
 
 @Component
@@ -41,7 +42,7 @@ public class SecurityConfiguration {
                 .and()
                 .csrf().disable()
                 .authorizeHttpRequests()
-                .requestMatchers("/user/login", "/user/signUp", "/user/forgotPassword")
+                .requestMatchers("/user/login", "/user/signUp", "/user/forgotPassword", "/handshake/***")
                 .permitAll()
                 .anyRequest()
                 .authenticated()

@@ -2,12 +2,10 @@ package projectpolaris.CBA.Handshake;
 
 import jakarta.annotation.Nullable;
 import lombok.extern.log4j.Log4j2;
-import org.mindrot.jbcrypt.BCrypt;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -106,15 +104,13 @@ public class HandshakeController {
             String uri = "http://localhost:8090/handshake/proceed-handshake/get_chest";
 
             RestTemplate restTemplate = new RestTemplate();
-            Map<String, String> result = restTemplate.postForObject(uri, httpEntity, Map.class);
+            Map<String, String> result_chest = restTemplate.postForObject(uri, httpEntity, Map.class);
 
-            log.info("result[PK: SecretKeySpec]: " + Arrays.toString(Base64.getDecoder().decode(result.get("PK: SecretKeySpec"))));
-            log.info("result[PK: IV]: " + Arrays.toString(Base64.getDecoder().decode(result.get("PK: IV"))));
+            log.info("result[PK: IV]: " + Arrays.toString(Base64.getDecoder().decode(result_chest.get("PK: IV"))));
+            log.info("result[PK: SecretKeySpec]: " + Arrays.toString(Base64.getDecoder().decode(result_chest.get("PK: SecretKeySpec"))));
 
-            return new ResponseEntity<>(chest, HttpStatus.OK); //#todo might need to change
+            return proceedHandshake_SendEncryptedMessage(result_chest); //#todo might need to change
         } else {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
 
             if (camellia != null) {
                 try {
@@ -150,6 +146,8 @@ public class HandshakeController {
                     throw new RuntimeException(e);
                 }
             }
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, String> chest = new HashMap<>();
 
@@ -178,6 +176,95 @@ public class HandshakeController {
         }
     }
 
+    private ResponseEntity<Map<String, String>> proceedHandshake_SendEncryptedMessage(@RequestBody Map<String, String> chest) {
+
+        try {
+            camellia.generateSymmetricKeys(Base64.getDecoder().decode(chest.get("PK: IV")),
+                    Base64.getDecoder().decode(chest.get("PK: SecretKeySpec")));
+        } catch (IllegalBlockSizeException e) {
+            log.info("IllegalBlockSizeException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (BadPaddingException e) {
+            log.info("BadPaddingException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (InvalidAlgorithmParameterException e) {
+            log.info("InvalidAlgorithmParameterException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (InvalidKeyException e) {
+            log.info("InvalidKeyException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (NoSuchPaddingException e) {
+            log.info("NoSuchPaddingException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (NoSuchAlgorithmException e) {
+            log.info("NoSuchAlgorithmException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (NoSuchProviderException e) {
+            log.info("NoSuchProviderException was thrown.");
+            throw new RuntimeException(e);
+        }
+
+        log.info("[Camellia] IV: " + Base64.getEncoder().encodeToString(camellia.getIvParameterSpec().getIV()));
+        log.info("[Camellia] SecretKeySpec: " + Base64.getEncoder().encodeToString(camellia.getSecretKeySpec().getEncoded()));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        String encryptedMessage = null;
+        try {
+            encryptedMessage = camellia.enchant("The Dying Message");
+        } catch (IllegalBlockSizeException e) {
+            log.info("IllegalBlockSizeException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (BadPaddingException e) {
+            log.info("BadPaddingException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (InvalidAlgorithmParameterException e) {
+            log.info("InvalidAlgorithmParameterException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (InvalidKeyException e) {
+            log.info("InvalidKeyException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (NoSuchPaddingException e) {
+            log.info("NoSuchPaddingException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (NoSuchAlgorithmException e) {
+            log.info("NoSuchAlgorithmException was thrown.");
+            throw new RuntimeException(e);
+
+        } catch (NoSuchProviderException e) {
+            log.info("NoSuchProviderException was thrown.");
+            throw new RuntimeException(e);
+        }
+
+        Map<String, String> encryptedMessagePayload = new HashMap<>();
+        encryptedMessagePayload.put("EncryptedMessage", encryptedMessage);
+
+        HttpEntity<Map<String, String>> httpEntity = new HttpEntity<>(encryptedMessagePayload, headers);
+
+        // #todo 1. add a way to know whom to call
+        // #todo 2. put all of this logic into a dedicated service
+        String uri = "http://localhost:8090/handshake/proceed-handshake/get_encrypted_message";
+
+        RestTemplate restTemplate = new RestTemplate();
+        Map<String, String> result = restTemplate.postForObject(uri, httpEntity, Map.class);
+
+        log.info("result: " + result.get("ACK"));
+
+        return new ResponseEntity<>(null, HttpStatus.OK);
+    }
+
     // Handshake process as RECEIVER
     private ResponseEntity<String> respondToHandshake_GetChest(@RequestBody String message_in) {
         if (message_in.equals("Nee")) {
@@ -196,13 +283,13 @@ public class HandshakeController {
             RestTemplate restTemplate = new RestTemplate();
             Map<String, String> result = restTemplate.postForObject(uri, httpEntity, Map.class);
 
-            if (result != null) {
-                if (!result.isEmpty()) {
+//            if (result != null) {
+//                if (!result.isEmpty()) {
                     log.info("Public key:  " + result.get("Public_Key"));
                     log.info("Certificate: " + result.get("Certificate"));
                     log.info("Hash:        " + result.get("Hash"));
-                }
-            }
+//                }
+//            }
         } else {
             return new ResponseEntity<>("Wrong greeting. Handshake Refused", HttpStatus.BAD_REQUEST);
         }

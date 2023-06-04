@@ -36,7 +36,7 @@ public class JWTFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        if (request.getServletPath().matches("/user/signUp|/user/forgotPassword|/user/login")) { // Ignored urls
+        if (request.getServletPath().matches("/user/signUp|/user/forgotPassword|/user/login|/handshake/|/handshake/proceed-handshake/*")) { // Ignored urls
             filterChain.doFilter(request, response);
             return;
         } else {

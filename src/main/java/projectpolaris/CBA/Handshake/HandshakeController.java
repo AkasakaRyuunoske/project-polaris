@@ -37,35 +37,28 @@ public class HandshakeController {
 
     // Handshake process as INITIATOR
     @GetMapping("/start-handshake") //#todo for testing purposes is GET, must be changed to POST later
-    public ResponseEntity<String> initiateHandshake(@RequestBody @Nullable String message_in) {
+    public ResponseEntity<String> initiateHandshake() {
         log.info("Handshake started...");
 
-        if (message_in == null) {
-            // If message from receiver is null than controller is called for INITIATING the handshake
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+        String message_out = "Nee";
 
-            String message_out = "Nee";
+        HttpEntity<String> httpEntity = new HttpEntity<>(message_out, headers);
 
-            HttpEntity<String> httpEntity = new HttpEntity<>(message_out, headers);
+        // #todo 1. add a way to know whom to call
+        // #todo 2. put all of this logic into a dedicated service
+        String uri = "http://localhost:8090/handshake/start-handshake";
 
-            // #todo 1. add a way to know whom to call
-            // #todo 2. put all of this logic into a dedicated service
-            String uri = "http://localhost:8090/handshake/start-handshake";
+        RestTemplate restTemplate = new RestTemplate();
+        String result = restTemplate.postForObject(uri, httpEntity, String.class);
 
-            RestTemplate restTemplate = new RestTemplate();
-            String result = restTemplate.postForObject(uri, httpEntity, String.class);
+        log.info("result: " + result);
 
-            log.info("result: " + result);
-
-            if (result != null && result.equals("Nee Nee")) {
-                log.info("Nee Nee");
-                proceedHandshake_SendChest(null);
-            }
-
-        } else {
-//            respondToHandshake(message_in);
+        if (result != null && result.equals("Nee Nee")) {
+            log.info("Nee Nee");
+            proceedHandshake_SendChest(null);
         }
 
         return new ResponseEntity<>("Nee", HttpStatus.ACCEPTED);

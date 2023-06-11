@@ -42,23 +42,53 @@ public class CertificationGenerator {
     private PublicKey publicKey;
     private PrivateKey privateKey;
 
-    public X509Certificate generateCertification() throws NoSuchAlgorithmException, CertificateException, IOException, OperatorCreationException {
+    public X509Certificate generateCertification() {
 
         log.info("Certification generation started");
         log.info("server name : " + serverName);
 
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-// Step 3: Initialize the KeyGenerator with a certain keysize
+        KeyPairGenerator keyPairGenerator;
+
+        //#todo more info about error occurred during certification generation
+        try {
+            keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+        // Initialize the KeyGenerator with a certain keysize
         keyPairGenerator.initialize(512);
-// Step 4: Generate the key pairs
+
+        // Generate the key pairs
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
-// Step 5: Extract the keys
+
+        // Extract the keys
         privateKey = keyPair.getPrivate();
         publicKey = keyPair.getPublic();
 
-        X509Certificate certificate = selfSign(keyPair, "CN=" + serverName);
+        X509Certificate certificate;
+
+        //#todo more info about error occurred during certification generation
+        try {
+            certificate = selfSign(keyPair, "CN=" + serverName);
+        } catch (OperatorCreationException | CertificateException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            certificate.verify(keyPair.getPublic()); // Verify the certificate using the public key
+        } catch (CertificateException | SignatureException | NoSuchProviderException | InvalidKeyException |
+                 NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
 
         log.info("Generated certificate is: \n\n" + certificate.toString());
+
+        try {
+            saveCertificateToFile(certificate, "certificate.cert");
+            log.info("Certificate is saved locally as: certificate.cert");
+        } catch (CertificateEncodingException | IOException e) {
+            throw new RuntimeException(e);
+        }
 
         return certificate;
     }
@@ -97,45 +127,45 @@ public class CertificationGenerator {
         return new JcaX509CertificateConverter().setProvider(bcProvider).getCertificate(certBuilder.build(contentSigner));
     }
 
-    private X509Certificate generateSelfSignedCertificate(KeyPair keyPair) throws OperatorCreationException, CertificateException, NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
-        PKCS10CertificationRequestBuilder requestBuilder = new PKCS10CertificationRequestBuilder(
-                new X500Name("CN=Self-Signed"),
-                (SubjectPublicKeyInfo) keyPair.getPublic()
-        );
+//    private X509Certificate generateSelfSignedCertificate(KeyPair keyPair) throws OperatorCreationException, CertificateException, NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
+//        PKCS10CertificationRequestBuilder requestBuilder = new PKCS10CertificationRequestBuilder(
+//                new X500Name("CN=Self-Signed"),
+//                (SubjectPublicKeyInfo) keyPair.getPublic()
+//        );
+//
+//        JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder("SHA256withRSA");
+//        ContentSigner contentSigner = signerBuilder.build(keyPair.getPrivate());
+//
+//        PKCS10CertificationRequest csr = requestBuilder.build(contentSigner);
+//
+//        X509Certificate certificate = generateCertificate(csr);
+//        certificate.verify(keyPair.getPublic()); // Verify the certificate using the public key
+//
+//        return certificate;
+//    }
 
-        JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder("SHA256withRSA");
-        ContentSigner contentSigner = signerBuilder.build(keyPair.getPrivate());
-
-        PKCS10CertificationRequest csr = requestBuilder.build(contentSigner);
-
-        X509Certificate certificate = generateCertificate(csr);
-        certificate.verify(keyPair.getPublic()); // Verify the certificate using the public key
-
-        return certificate;
-    }
-
-    private X509Certificate generateCertificate(PKCS10CertificationRequest csr) throws OperatorCreationException, CertificateException {
-
-        long validityPeriodMillis = 365 * 24 * 60 * 60 * 1000L; //One year
-        Date startDate = new Date();
-        Date endDate = new Date(startDate.getTime() + validityPeriodMillis);
-
-        X500Name issuer = csr.getSubject();
-
-        JcaX509v3CertificateBuilder certificateBuilder = new JcaX509v3CertificateBuilder(
-                issuer,
-                BigInteger.valueOf(startDate.getTime()),
-                startDate,
-                endDate,
-                csr.getSubject(),
-                (PublicKey) csr.getSubjectPublicKeyInfo()
-        );
-
-        // Sign the certificate using the private key
-        X509CertificateHolder certificateHolder = certificateBuilder.build(new JcaContentSignerBuilder("SHA256withRSA").build(privateKey));
-
-        return new JcaX509CertificateConverter().getCertificate(certificateHolder);
-    }
+//    private X509Certificate generateCertificate(PKCS10CertificationRequest csr) throws OperatorCreationException, CertificateException {
+//
+//        long validityPeriodMillis = 365 * 24 * 60 * 60 * 1000L; //One year
+//        Date startDate = new Date();
+//        Date endDate = new Date(startDate.getTime() + validityPeriodMillis);
+//
+//        X500Name issuer = csr.getSubject();
+//
+//        JcaX509v3CertificateBuilder certificateBuilder = new JcaX509v3CertificateBuilder(
+//                issuer,
+//                BigInteger.valueOf(startDate.getTime()),
+//                startDate,
+//                endDate,
+//                csr.getSubject(),
+//                (PublicKey) csr.getSubjectPublicKeyInfo()
+//        );
+//
+//        // Sign the certificate using the private key
+//        X509CertificateHolder certificateHolder = certificateBuilder.build(new JcaContentSignerBuilder("SHA256withRSA").build(privateKey));
+//
+//        return new JcaX509CertificateConverter().getCertificate(certificateHolder);
+//    }
 
     private void saveCertificateToFile(X509Certificate certificate, String filename) throws CertificateEncodingException, IOException {
         try (FileWriter fileWriter = new FileWriter(filename)) {

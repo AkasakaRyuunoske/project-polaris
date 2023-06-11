@@ -2,7 +2,8 @@ package projectpolaris.Messaging;
 
 import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
@@ -10,124 +11,98 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration
 @Log4j2
 public class KafkaTopics {
-
-    // Default Configurations
-    @Value("${polaris.kafka.default-partitions-count}")
-    private int default_partitions_count;
-
-    @Value("${polaris.kafka.default-replicas-count}")
-    private int default_replicas_count;
-
-
-    //Topic Names
-
-    @Value("${polaris.kafka.topics.utsup}")
-    private String utsup;
-
-    @Value("${polaris.kafka.topics.statistics}")
-    private String statistics;
-
-    @Value("${polaris.kafka.topics.security}")
-    private String security;
-
-    @Value("${polaris.kafka.topics.data-layer}")
-    private String dataLayer;
-
-    @Value("${polaris.kafka.topics.front-end-gateway}")
-    private String frontEndGateway;
-
-    @Value("${polaris.kafka.topics.errors-security}")
-    private String errorsSecurity;
-
-    @Value("${polaris.kafka.topics.errors-REST}")
-    private String errorsREST;
-
-    @Value("${polaris.kafka.topics.errors-SOAP}")
-    private String errorsSOAP;
-
-    @Value("${polaris.kafka.topics.errors-internal}")
-    private String errorsInternal;
+    @Autowired
+    KafkaConfigs kafkaConfigs;
 
     @Bean
+    @ConditionalOnProperty(name = "kafkaConfigs.security.enabled", havingValue = "true")
     public NewTopic utsuP() {
-        log.info("[Topic created]: " + utsup);
-        return TopicBuilder.name(utsup)
-                .partitions(default_partitions_count)
-                .replicas(default_replicas_count)
+        log.info("[Topic created]: " + kafkaConfigs.getUtsup());
+        return TopicBuilder.name(kafkaConfigs.getUtsup())
+                .partitions(kafkaConfigs.getDefault_partitions_count())
+                .replicas(kafkaConfigs.getDefault_replicas_count())
                 .build();
     }
 
     @Bean
+    @ConditionalOnProperty(name = "kafkaConfigs.security.enabled", havingValue = "true")
     public NewTopic security() {
-        log.info("[Topic created]:" + security);
-        return TopicBuilder.name(security)
-                .partitions(default_partitions_count)
-                .replicas(default_replicas_count)
+        log.info("[Topic created]: " + kafkaConfigs.getSecurity());
+        return TopicBuilder.name(kafkaConfigs.getSecurity())
+                .partitions(kafkaConfigs.getDefault_partitions_count())
+                .replicas(kafkaConfigs.getDefault_replicas_count())
                 .build();
     }
 
     @Bean
+    @ConditionalOnProperty(name = "kafkaConfigs.security.enabled", havingValue = "true")
     public NewTopic statistics() {
-        log.info("[Topic created]: " + statistics);
-        return TopicBuilder.name(statistics) // #todo maybe more topics, like statistics-front-end, statistics-SBES, statistics-MBE, statistics-SBEP, statistics-errors
-                .partitions(default_partitions_count)
-                .replicas(default_replicas_count)
+        log.info("[Topic created]: " + kafkaConfigs.getStatistics());
+        return TopicBuilder.name(kafkaConfigs.getStatistics()) // #todo maybe more topics, like statistics-front-end, statistics-SBES, statistics-MBE, statistics-SBEP, statistics-errors
+                .partitions(kafkaConfigs.getDefault_partitions_count())
+                .replicas(kafkaConfigs.getDefault_replicas_count())
                 .build();
     }
 
     @Bean
+    @ConditionalOnProperty(name = "kafkaConfigs.security.enabled", havingValue = "true")
     public NewTopic dataLayer() {
-        log.info("[Topic created]: " + dataLayer);
-        return TopicBuilder.name(dataLayer)
-                .partitions(default_partitions_count)
-                .replicas(default_replicas_count)
+        log.info("[Topic created]: " + kafkaConfigs.getDataLayer());
+        return TopicBuilder.name(kafkaConfigs.getDataLayer())
+                .partitions(kafkaConfigs.getDefault_partitions_count())
+                .replicas(kafkaConfigs.getDefault_replicas_count())
                 .build();
     }
 
     @Bean
+    @ConditionalOnProperty(name = "kafkaConfigs.security.enabled", havingValue = "true")
     public NewTopic frontEndGateway() {
-        log.info("[Topic created]: " + frontEndGateway);
-        return TopicBuilder.name(frontEndGateway)
-                .partitions(default_partitions_count)
-                .replicas(default_replicas_count)
+        log.info("[Topic created]: " + kafkaConfigs.getFrontEndGateway());
+        return TopicBuilder.name(kafkaConfigs.getFrontEndGateway())
+                .partitions(kafkaConfigs.getDefault_partitions_count())
+                .replicas(kafkaConfigs.getDefault_replicas_count())
                 .build();
     }
 
     // Error dedicated Topics
 
     @Bean
+    @ConditionalOnProperty(name = "kafkaConfigs.security.enabled", havingValue = "true")
     public NewTopic errorsSecurity() {
-        log.info("[Topic created]: " + errorsSecurity);
-        return TopicBuilder.name(errorsSecurity)
-                .partitions(default_partitions_count)
-                .replicas(default_replicas_count)
+        log.info("[Topic created]: " + kafkaConfigs.getErrorsSecurity());
+        return TopicBuilder.name(kafkaConfigs.getErrorsSecurity())
+                .partitions(kafkaConfigs.getDefault_partitions_count())
+                .replicas(kafkaConfigs.getDefault_replicas_count())
                 .build();
     }
 
     @Bean
+    @ConditionalOnProperty(name = "kafkaConfigs.security.enabled", havingValue = "true")
     public NewTopic errorsREST() {
-        log.info("[Topic created]: " + errorsREST);
-        return TopicBuilder.name(errorsREST)
-                .partitions(default_partitions_count)
-                .replicas(default_replicas_count)
+        log.info("[Topic created]: " + kafkaConfigs.getErrorsREST());
+        return TopicBuilder.name(kafkaConfigs.getErrorsREST())
+                .partitions(kafkaConfigs.getDefault_partitions_count())
+                .replicas(kafkaConfigs.getDefault_replicas_count())
                 .build();
     }
 
     @Bean
+    @ConditionalOnProperty(name = "kafkaConfigs.security.enabled", havingValue = "true")
     public NewTopic errorsSOAP() {
-        log.info("[Topic created]: " + errorsSOAP);
-        return TopicBuilder.name(errorsSOAP)
-                .partitions(default_partitions_count)
-                .replicas(default_replicas_count)
+        log.info("[Topic created]: " + kafkaConfigs.getErrorsSOAP());
+        return TopicBuilder.name(kafkaConfigs.getErrorsSOAP())
+                .partitions(kafkaConfigs.getDefault_partitions_count())
+                .replicas(kafkaConfigs.getDefault_replicas_count())
                 .build();
     }
 
     @Bean
+    @ConditionalOnProperty(name = "kafkaConfigs.security.enabled", havingValue = "true")
     public NewTopic errorsInternal() {
-        log.info("[Topic created]: " + errorsInternal);
-        return TopicBuilder.name(errorsInternal)
-                .partitions(default_partitions_count)
-                .replicas(default_replicas_count)
+        log.info("[Topic created]: " + kafkaConfigs.getErrorsInternal());
+        return TopicBuilder.name(kafkaConfigs.getErrorsInternal())
+                .partitions(kafkaConfigs.getDefault_partitions_count())
+                .replicas(kafkaConfigs.getDefault_replicas_count())
                 .build();
     }
 }

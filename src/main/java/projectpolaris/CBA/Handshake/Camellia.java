@@ -72,7 +72,7 @@ public class Camellia {
 //        System.out.println("Decrypted message: " + decryptedMessage);
     }
 
-    public void generateSymmetricKeys(byte[] iv, byte[] key) throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
+    public void generateSymmetricKeys(byte[] iv, byte[] key) {
 
         Security.addProvider(new BouncyCastleProvider());
 
@@ -83,7 +83,11 @@ public class Camellia {
         ivParameterSpec = new IvParameterSpec(iv);
 
 //        // Create a Camellia cipher instance and initialize it with the key and IV
-        cipher = Cipher.getInstance(algorithm_transformation, "BC");
+        try {
+            cipher = Cipher.getInstance(algorithm_transformation, "BC");
+        } catch (NoSuchAlgorithmException | NoSuchProviderException | NoSuchPaddingException e) {
+            throw new RuntimeException(e);
+        }
         secretKeySpec = new SecretKeySpec(key, algorithm_name);
 //        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
 
@@ -112,21 +116,35 @@ public class Camellia {
 //        System.out.println("Decrypted message: " + decryptedMessage);
     }
 
-    public String enchant(String plain_string) throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+    public String enchant(String plain_string) {
         log.info("Enchant was called!");
 
         Security.addProvider(new BouncyCastleProvider());
 
         // Create a Camellia cipher instance and initialize it with the key and IV
-        Cipher cipher = Cipher.getInstance(algorithm_transformation, "BC");
+        Cipher cipher = null;
+        try {
+            cipher = Cipher.getInstance(algorithm_transformation, "BC");
+        } catch (NoSuchAlgorithmException | NoSuchProviderException | NoSuchPaddingException e) {
+            throw new RuntimeException(e);
+        }
 
         log.info("secretKeySpec: " + secretKeySpec);
         log.info("secretKeySpec: " + secretKeySpec.toString());
 
-        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
+        try {
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
+        } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
+            throw new RuntimeException(e);
+        }
 
         // Encrypt the message
-        byte[] enchantedBytes = cipher.doFinal(plain_string.getBytes(StandardCharsets.UTF_8));
+        byte[] enchantedBytes = new byte[0];
+        try {
+            enchantedBytes = cipher.doFinal(plain_string.getBytes(StandardCharsets.UTF_8));
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
+            throw new RuntimeException(e);
+        }
 
         // Encode the encrypted bytes and IV using Base64 for convenient display or transmission
         String enchantedMessage = Base64.getEncoder().encodeToString(enchantedBytes);

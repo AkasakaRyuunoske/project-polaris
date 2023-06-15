@@ -22,6 +22,8 @@ public class HandshakePostman {
     @Autowired
     KafkaConfigs kafkaConfigs;
 
+    //#Todo Add error management for situation where RequestBody is null but not Nullable
+    //#Todo Return actual pages not hard coded html-css-js code
     public Map<String, String> contact(String uri, String message_out){
 
         Map<String, String> contact_result = new HashMap<>();
@@ -47,13 +49,13 @@ public class HandshakePostman {
                 log.error("More precisely an " + httpClientErrorException.getStatusCode() + " occurred");
                 kafkaTemplate.send(kafkaConfigs.getErrorsSecurity(), "[HANDSHAKE CONTROLLER] More precisely an " + httpClientErrorException.getStatusCode() + " occurred");
 
-                contact_result.put("Body", "\"<h1>Error occurred on Client side: \"" +
-                        "                                + httpClientErrorException.getStatusCode()" +
-                        "                                + \"</h1>\"" +
-                        "                                + \"<br>\"" +
-                        "                                + \"<h1> Error message: \"" +
-                        "                                + httpClientErrorException.getResponseBodyAsString()" +
-                        "                                + \"</h1>\"");
+                contact_result.put("Body", "<h1>Error occurred on Client side:"
+                        + httpClientErrorException.getStatusCode()
+                        + "</h1>"
+                        + "<br>"
+                        + "<h1> Error message:"
+                        + httpClientErrorException.getResponseBodyAsString()
+                        + "</h1>");
                 contact_result.put("Status", httpClientErrorException.getStatusCode().toString());
 
                 return contact_result;

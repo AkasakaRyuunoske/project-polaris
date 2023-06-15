@@ -1,32 +1,28 @@
 package projectpolaris.CBA.Handshake;
 
-import jakarta.annotation.Nullable;
 import lombok.extern.log4j.Log4j2;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import projectpolaris.CBA.SecurityServices.HandshakePostman;
 import projectpolaris.Messaging.KafkaConfigs;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
+
+// #Todo 1. Test all IFs, all the data validation, everything
+// #Todo 1.1 Tests must be written as tests not, manual testing
+// #Todo 1.2 Data, Request and Response validation logic must be in dedicated classes as designed
+// #Todo 2. Add some way for handshakePostman to know where to contact, not using hardcoded urls
+
+// #Todo 3. Add receivers logic
 @Log4j2
 @RestController
 @RequestMapping("/handshake")
@@ -104,8 +100,11 @@ public class HandshakeController {
         kafkaTemplate.send(kafkaConfigs.getSecurity(), "[HANDSHAKE CONTROLLER] HASH" + result_chest.get("HASH"));
         kafkaTemplate.send(kafkaConfigs.getSecurity(), "[HANDSHAKE CONTROLLER] salt" + result_chest.get("salt"));
 
+
         if (!result_chest.isEmpty() && !result_chest.get("HASH").isEmpty()) {
-            boolean checkpw_result = BCrypt.checkpw(result_chest.get("PK") + result_chest.get("Certificate"), result_chest.get("HASH"));
+            // Using default method compare locally created hash with one that is received
+            boolean checkpw_result = BCrypt.checkpw(result_chest.get("PK: IV") + result_chest.get("PK: SecretKeySpec") + result_chest.get("Certificate"), result_chest.get("HASH"));
+
             log.info("checkpw result: " + checkpw_result);
             kafkaTemplate.send(kafkaConfigs.getSecurity(), "[HANDSHAKE CONTROLLER] checkpw result: " + checkpw_result);
 
@@ -122,6 +121,7 @@ public class HandshakeController {
         return new ResponseEntity<>("Unexpected Server side error.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    //    @PostMapping("/proceed-handshake/send_encrypted_message")
     private ResponseEntity<Map<String, String>> proceedHandshake_SendEncryptedMessage(@RequestBody Map<String, String> chest) {
         kafkaTemplate.send(kafkaConfigs.getErrorsSecurity(), "[HANDSHAKE CONTROLLER] Sending encrypted message encountered errors due to poor coding xdd");
 
@@ -134,119 +134,41 @@ public class HandshakeController {
         String plainMessage = "The Dying Message";
         String encryptedMessage = camellia.enchant(plainMessage);
 
+        String encryptedMessage_hash = BCrypt.hashpw(encryptedMessage, BCrypt.gensalt());
+
         Map<String, String> encryptedMessagePayload = new HashMap<>();
+
         encryptedMessagePayload.put("EncryptedMessage", encryptedMessage);
+        encryptedMessagePayload.put("EncryptedMessageHash", encryptedMessage_hash);
 
         // #todo 1. add a way to know whom to call
         Map<String, String> result = handshakePostman.contact("http://localhost:8090/handshake/proceed-handshake/get_encrypted_message", encryptedMessagePayload);
 
-        log.info("result: " + result.get("ACK"));
+        Map<String, String> response = new HashMap<>();
 
-        return new ResponseEntity<>(null, HttpStatus.OK);
-    }
-
-    // Handshake process as RECEIVER
-    private ResponseEntity<String> respondToHandshake_GetChest(@RequestBody String message_in) {
-        if (message_in.equals("Nee")) {
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            String message_out = "Nee Nee";
-
-            HttpEntity<String> httpEntity = new HttpEntity<>(message_out, headers);
-
-            // #todo 1. add a way to know whom to call
-            // #todo 2. put all of this logic into a dedicated service
-            String uri = "http://localhost:8090/handshake/start-handshake";
-
-            RestTemplate restTemplate = new RestTemplate();
-            Map<String, String> result = restTemplate.postForObject(uri, httpEntity, Map.class);
-
-            if (result != null) {
-                if (!result.isEmpty()) {
-                    log.info("Public key:  " + result.get("Public_Key"));
-                    log.info("Certificate: " + result.get("Certificate"));
-                    log.info("Hash:        " + result.get("Hash"));
-                }
-            }
+        if (!result.isEmpty() && result.get("ACK") != null && !result.get("ACK").isEmpty() && result.get("ACK").equals("acknowledgment")) {
+            finishHandshake_sendAck();
         } else {
-            return new ResponseEntity<>("Wrong greeting. Handshake Refused", HttpStatus.BAD_REQUEST);
+            response.put("Message", "Something wrong with ACK. Handshake refused");
+
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
 
-        return new ResponseEntity<>("Nee Nee", HttpStatus.OK);
+        response.put("Message", "Something wrong with server while doing last step of handshake");
+
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @PostMapping("/proceed-handshake/get_chest")
-    private ResponseEntity<String> proceedHandshake(@RequestBody @Nullable Map<String, String> chest_in) {
+    //    @PostMapping("/finish-handshake/send_ACK")
+    private ResponseEntity<Map<String, String>> finishHandshake_sendAck() {
+        Map<String, String> ackPayload = new HashMap<>();
 
-        if (chest_in != null) {
-            log.info("Chest Received");
+        ackPayload.put("ACK", "acknowledgment");
 
-            log.info("Chest contents[PK]: " + chest_in.get("PK"));
-            log.info("Chest contents[Certificate]: " + chest_in.get("Certificate"));
-            log.info("Chest contents[HASH]: " + chest_in.get("HASH"));
-            log.info("Chest contents[salt]: " + chest_in.get("salt"));
+        Map<String, String> result = handshakePostman.contact("http://localhost:8090/handshake/proceed-handshake/get_ACK", ackPayload);
 
-            // #Todo Add validation logic
-            // #Todo Add hash checking logic
+        log.info("result of getAck: " + result);
 
-            // if ok send chest logic
-        }
-
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setContentType(MediaType.APPLICATION_JSON);
-//
-//        if (camellia != null) {
-//            try {
-//                log.info("trying to generate symmetric key...");
-//                camellia.generateSymmetricKeys();
-//
-//            } catch (IllegalBlockSizeException e) {
-//                log.info("IllegalBlockSizeException was thrown.");
-//                throw new RuntimeException(e);
-//
-//            } catch (BadPaddingException e) {
-//                log.info("BadPaddingException was thrown.");
-//                throw new RuntimeException(e);
-//
-//            } catch (InvalidAlgorithmParameterException e) {
-//                log.info("InvalidAlgorithmParameterException was thrown.");
-//                throw new RuntimeException(e);
-//
-//            } catch (InvalidKeyException e) {
-//                log.info("InvalidKeyException was thrown.");
-//                throw new RuntimeException(e);
-//
-//            } catch (NoSuchPaddingException e) {
-//                log.info("NoSuchPaddingException was thrown.");
-//                throw new RuntimeException(e);
-//
-//            } catch (NoSuchAlgorithmException e) {
-//                log.info("NoSuchAlgorithmException was thrown.");
-//                throw new RuntimeException(e);
-//
-//            } catch (NoSuchProviderException e) {
-//                log.info("NoSuchProviderException was thrown.");
-//                throw new RuntimeException(e);
-//            }
-//        }
-//
-//        Map<String, String> chest = new HashMap<>();
-//
-//        chest.put("PK: IV", camellia.getIvParameterSpec().toString());
-//        chest.put("PK: SecretKeySpec", camellia.getSecretKeySpec().toString());
-//
-//        HttpEntity<Map<String, String>> httpEntity = new HttpEntity<>(chest, headers);
-//
-//        // #todo 1. add a way to know whom to call
-//        // #todo 2. put all of this logic into a dedicated service
-//        String uri = "http://localhost:8090/handshake/proceed-handshake/send_chest";
-//
-//        RestTemplate restTemplate = new RestTemplate();
-//        String result = restTemplate.postForObject(uri, httpEntity, String.class);
-//        log.info("result is: " + result);
-
-        return new ResponseEntity<>("Chest received successfully, expect one in return, baka ><", HttpStatus.ACCEPTED);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 }

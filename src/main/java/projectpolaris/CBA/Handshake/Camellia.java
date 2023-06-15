@@ -32,7 +32,7 @@ public class Camellia {
     private SecretKeySpec secretKeySpec;
 
     private Cipher cipher;
-    public void generateSymmetricKeys() throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
+    public void generateSymmetricKeys() {
 
         Security.addProvider(new BouncyCastleProvider());
 
@@ -43,7 +43,11 @@ public class Camellia {
         ivParameterSpec = new IvParameterSpec(ivBytes);
 
 //        // Create a Camellia cipher instance and initialize it with the key and IV
-        cipher = Cipher.getInstance(algorithm_transformation, "BC");
+        try {
+            cipher = Cipher.getInstance(algorithm_transformation, "BC");
+        } catch (NoSuchAlgorithmException | NoSuchProviderException | NoSuchPaddingException e) {
+            throw new RuntimeException(e);
+        }
         secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), algorithm_name);
 //        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
 

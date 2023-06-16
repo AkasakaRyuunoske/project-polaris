@@ -3,6 +3,7 @@ package projectpolaris.CBA.Handshake;
 import lombok.extern.log4j.Log4j2;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -46,9 +47,20 @@ public class HandshakeController {
     @Autowired
     HandshakePostman handshakePostman;
 
+    // #Todo delete after testing with Angular (Corona)
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        log.info("Call was received");
+        log.info("{\"Message\":\"Sanman de fuantei na kono sekai kakumei ho oksohite yo ai ga sekai ni nare\"}");
+        String test = JSONObject.wrap(initiateHandshake().toString()).toString();
+        log.info("result of initiate handshake: " + "{\"Message\":\"" + test +"\"}");
+
+        return new ResponseEntity<>("{\"Message\":\"yey yey \"}", HttpStatus.OK);
+    }
+
     // Handshake process as INITIATOR
     @GetMapping("/start-handshake") //#todo for testing purposes is GET, must be changed to POST later
-    public ResponseEntity<String> initiateHandshake() {
+    public ResponseEntity<Map<String, String>> initiateHandshake() {
         kafkaTemplate.send(kafkaConfigs.getSecurity(), "[HANDSHAKE CONTROLLER] Handshake Requested....");
         log.info("Handshake started...");
 
@@ -59,10 +71,14 @@ public class HandshakeController {
             kafkaTemplate.send(kafkaConfigs.getSecurity(), "[HANDSHAKE CONTROLLER] Nee Nee received, handshake proceeds");
             log.info("Nee Nee");
 
-            proceedHandshake_SendChest();
-        }
+            return proceedHandshake_SendChest();
+        } else {
+            Map<String, String> response = new HashMap<>();
 
-        return new ResponseEntity<>(result.get("Body"), HttpStatus.ACCEPTED);
+            response.put("Message","Client side problem. Poshel nahuy.");
+
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
     }
 
     @PostMapping("/proceed-handshake/send_chest")
@@ -120,7 +136,7 @@ public class HandshakeController {
 
                         if (checkpw_result) {
                             kafkaTemplate.send(kafkaConfigs.getSecurity(), "[HANDSHAKE CONTROLLER] Hashes do match indeed ");
-                            proceedHandshake_SendEncryptedMessage(result_chest);
+                            return proceedHandshake_SendEncryptedMessage(result_chest);
                         } else {
                             kafkaTemplate.send(kafkaConfigs.getSecurity(), "[HANDSHAKE CONTROLLER] Hashes do not match. Handshake stopped.");
 
@@ -152,10 +168,6 @@ public class HandshakeController {
 
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
-
-        response.put("Message", "The chest was sent successfully");
-
-        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     //    @PostMapping("/proceed-handshake/send_encrypted_message")
@@ -186,7 +198,7 @@ public class HandshakeController {
                     Map<String, String> result = handshakePostman.contact("http://localhost:8090/handshake/proceed-handshake/get_encrypted_message", encryptedMessagePayload);
 
                     if (!result.isEmpty() && result.get("ACK") != null && !result.get("ACK").isEmpty() && result.get("ACK").equals("acknowledgment")) {
-                        finishHandshake_sendAck();
+                        return finishHandshake_sendAck();
                     } else {
                         response.put("Message", "Something wrong with ACK. Handshake refused");
 
@@ -208,10 +220,6 @@ public class HandshakeController {
 
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
-
-        response.put("Message", "Something wrong on the Server side.");
-
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     //    @PostMapping("/finish-handshake/send_ACK")

@@ -1,5 +1,7 @@
 package projectpolaris.CBA.Handshake;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.log4j.Log4j2;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,10 +54,19 @@ public class HandshakeController {
     public ResponseEntity<String> test() {
         log.info("Call was received");
         log.info("{\"Message\":\"Sanman de fuantei na kono sekai kakumei ho oksohite yo ai ga sekai ni nare\"}");
-        String test = JSONObject.wrap(initiateHandshake().toString()).toString();
-        log.info("result of initiate handshake: " + "{\"Message\":\"" + test +"\"}");
 
-        return new ResponseEntity<>("{\"Message\":\"yey yey \"}", HttpStatus.OK);
+        String json;
+
+        try {
+            json = new ObjectMapper().writeValueAsString(initiateHandshake());
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        log.info("result of initiate handshake: " + json);
+
+
+        return new ResponseEntity<>(json, HttpStatus.OK);
     }
 
     // Handshake process as INITIATOR
@@ -223,6 +234,7 @@ public class HandshakeController {
     }
 
     //    @PostMapping("/finish-handshake/send_ACK")
+    //#todo add some error management over here
     private ResponseEntity<Map<String, String>> finishHandshake_sendAck() {
         Map<String, String> ackPayload = new HashMap<>();
 
@@ -403,11 +415,7 @@ public class HandshakeController {
         data.put("Song", "The Dying Message");
         data.put("Author", "Utsu-P");
         data.put("Length", "354");
-        data.put("Short Description", """
-                Nee anata wa itsumo yume wo mite masu ka?\s
-                 owari kake no kono sekai de\s
-                 Fusagare ta micchi wo hiraku mono ni naru\s
-                 'Messeji' wo ida ita tsurai yooo""");
+        data.put("Short Description", "Nee anata wa itsumo yume wo mite masu ka? owari kake no kono sekai de Fusagare ta micchi wo hiraku mono ni naru  'Messeji' wo ida ita tsurai yooo");
 
         return new ResponseEntity<>(data, HttpStatus.OK);
     }

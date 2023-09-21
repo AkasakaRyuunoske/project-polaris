@@ -15,7 +15,7 @@ public class ShutDownButton extends JButton implements ActionListener {
         setBackground(new Color(150, 68, 226));
 
         setFocusable(false);
-        setEnabled(false);
+//        setEnabled(false); #todo set after
         setVisible(true);
 
         addActionListener(this);
